@@ -53,6 +53,14 @@
              cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
                    error:(NSError**)error;
 
+- (BOOL)moveContentsFrom:(NSURL*)fromURL
+          intoLocationAt:(NSURL*)toURL
+         destinationName:(NSString*)destinationName
+                 options:(OptionBits)flags
+             cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
+                   error:(NSError**)error;
+
+
 - (BOOL)folderAtPath:(NSString *)path isAtLeast:(int32_t)megs; // quickly answers this question
 - (uid_t)ownerForPath:(NSString*)path;
 - (BOOL)modifyCatologInfoAtPath:(NSString *)filePath isVisible:(BOOL)val;

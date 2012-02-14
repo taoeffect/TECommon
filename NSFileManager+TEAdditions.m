@@ -285,7 +285,7 @@ fail_label:
 	struct statfs sfs;
 	statfs([path fileSystemRepresentation], &sfs);
 	return (sfs.f_flags & MNT_RDONLY) > 0;
-		
+    
 }
 
 - (int64_t)approxSizeOfFolderAtPath:(NSString *)path
@@ -358,7 +358,7 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
                 }
                 CFRelease(url);
             }
-fail_label:
+        fail_label:
 			free(fetched);
 		}
 		FSCloseIterator(thisDirEnum);
@@ -400,11 +400,13 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
 // TODO: add an NSMutableDictionary parameter (optional) that will be filled
 //       with files that failed to copy due to whatever. Save this to a text file on the Desktop.
 
-- (BOOL)copyContentsFrom:(NSURL*)fromURL
-          intoLocationAt:(NSURL*)toURL
-                 options:(OptionBits)flags
-             cancelBlock:(BOOL(^)(OSStatus, NSDictionary *))cancelBlock
-                   error:(NSError**)error
+- (BOOL)copyOrMoveContentsFrom:(NSURL*)fromURL
+                intoLocationAt:(NSURL*)toURL
+               destinationName:(NSString*)destinationName
+                       options:(OptionBits)flags
+                   cancelBlock:(BOOL(^)(OSStatus, NSDictionary *))cancelBlock
+                          move:(BOOL)move
+                         error:(NSError**)error
 {
     OSStatus err;
     NSError *ourErr;
@@ -418,7 +420,7 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     FSFileOperationRef fileOp = FSFileOperationCreate(NULL);
     CFURLGetFSRef((__bridge CFURLRef)fromURL, &fromRef);
     CFURLGetFSRef((__bridge CFURLRef)toURL, &toRef);
-    
+    CFStringRef  destName = (__bridge CFStringRef)destinationName;
     resultURL = [toURL URLByAppendingPathComponent:[fromURL lastPathComponent] isDirectory:YES];
     
     struct MyFSStruct finisher;
@@ -433,12 +435,20 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     context.release = NULL;
     context.copyDescription = NULL;
     
-    DO_FAILABLE(err, FSFileOperationScheduleWithRunLoop,
-                fileOp, runLoopRef, kCFRunLoopDefaultMode);
+    DO_FAILABLE(err, FSFileOperationScheduleWithRunLoop, fileOp, runLoopRef, kCFRunLoopDefaultMode);
     
-    DO_FAILABLE(err, FSCopyObjectAsync,
-                fileOp, &fromRef, &toRef, NULL,
-                flags, MyFSFileOperationStatusProc, 1, &context);
+    if( !move )
+    {
+        DO_FAILABLE(err, FSCopyObjectAsync,
+                    fileOp, &fromRef, &toRef, NULL,
+                    flags, MyFSFileOperationStatusProc, 1, &context);
+    }
+    else
+    {
+        DO_FAILABLE(err, FSMoveObjectAsync,
+                    fileOp, &fromRef, &toRef, destName,
+                    flags, MyFSFileOperationStatusProc, 1, &context);     
+    }
 #if !defined(RUN_SHIT_ON_MAIN_RUNLOOP)
     while (!(finisher.finished) && [runLoop runMode:NSDefaultRunLoopMode
                                          beforeDate:[NSDate distantFuture]])
@@ -453,25 +463,26 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
 #endif
     
     FAIL_IFQ(finisher.canceled, err = errTEUserCanceled);
-    
-    // now we need to simply move all of the items up one directory
-    subitems = [self contentsOfDirectoryAtURL:resultURL
-                            includingPropertiesForKeys:$a(NSURLLocalizedNameKey)
-                                               options:0
-                                                 error:&ourErr];
-    FAIL_IF(!subitems, err = (OSStatus)[ourErr code]);
-    
-    for ( NSURL *item in subitems ) {
-        NSURL *newURL = [[resultURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:[item lastPathComponent]];
-        if ( ![blacklist containsObject:[item lastPathComponent]] && ![self moveItemAtURL:item toURL:newURL error:&ourErr] ) {
-            log_warn("failed to move: '%@' => '%@': %@", item, newURL, ourErr);
-            success = NO;
+    if( !move )
+    {
+        // now we need to simply move all of the items up one directory
+        subitems = [self contentsOfDirectoryAtURL:resultURL
+                       includingPropertiesForKeys:$a(NSURLLocalizedNameKey)
+                                          options:0
+                                            error:&ourErr];
+        FAIL_IF(!subitems, err = (OSStatus)[ourErr code]);
+        
+        for ( NSURL *item in subitems ) {
+            NSURL *newURL = [[resultURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:[item lastPathComponent]];
+            if ( ![blacklist containsObject:[item lastPathComponent]] && ![self moveItemAtURL:item toURL:newURL error:&ourErr] ) {
+                log_warn("failed to move: '%@' => '%@': %@", item, newURL, ourErr);
+                success = NO;
+            }
         }
+        FAIL_IF(!success, err = errTECopySuccessMoveFail);
+        
+        [self removeItemAtURL:resultURL error:nil];
     }
-    FAIL_IF(!success, err = errTECopySuccessMoveFail);
-    
-    [self removeItemAtURL:resultURL error:nil];
-
 fail_label:
     FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
     CFRelease(fileOp);
@@ -483,6 +494,27 @@ fail_label:
         return NO;
     }
     return YES;
+}
+
+- (BOOL)moveContentsFrom:(NSURL*)fromURL
+          intoLocationAt:(NSURL*)toURL
+         destinationName:(NSString*)destinationName
+                 options:(OptionBits)flags
+             cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
+                   error:(NSError**)error
+{
+    
+    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:destinationName options:flags cancelBlock:cancelBlock move:YES error:error];
+}
+
+- (BOOL)copyContentsFrom:(NSURL*)fromURL
+          intoLocationAt:(NSURL*)toURL
+                 options:(OptionBits)flags
+             cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
+                   error:(NSError**)error
+{
+    
+    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:nil options:flags cancelBlock:cancelBlock move:NO error:error];
 }
 
 - (BOOL)folderAtPath:(NSString *)path isAtLeast:(int32_t)megs
