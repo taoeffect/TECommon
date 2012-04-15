@@ -53,6 +53,14 @@
              cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
                    error:(NSError**)error;
 
+- (BOOL)copyContentsFrom:(NSURL*)fromURL
+          intoLocationAt:(NSURL*)toURL
+         destinationName:(NSString*)destinationName
+                 options:(OptionBits)flags
+              upOneLevel:(BOOL)upOneLevel
+             cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
+                   error:(NSError**)error;
+
 - (BOOL)moveContentsFrom:(NSURL*)fromURL
           intoLocationAt:(NSURL*)toURL
          destinationName:(NSString*)destinationName

@@ -352,10 +352,13 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
             if ( fsErr != noErr && fsErr != errFSNoMoreItems && !isCanceled ) {
                 CFURLRef url = CFURLCreateFromFSRef(NULL, theFileRef);
                 // if we got an access denied to the .Trashes folder we continue
-                if ( fsErr != afpAccessDenied || ![[(__bridge NSURL*)url lastPathComponent] isEqualToString:@".Trashes"] ) {
+                if ( fsErr != afpAccessDenied ) {
                     log_err("error %d during size calc for: %@", fsErr, (__bridge NSURL*)url);
                     totalSize = NSUIntegerMax;
-                }
+                } else {
+					log_warn("accessDenied during size calc for: %@", (__bridge NSURL*)url);
+					totalSize = 0;
+				}
                 CFRelease(url);
             }
         fail_label:
@@ -404,6 +407,7 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
                 intoLocationAt:(NSURL*)toURL
                destinationName:(NSString*)destinationName
                        options:(OptionBits)flags
+                    upOneLevel:(BOOL)upOneLevel
                    cancelBlock:(BOOL(^)(OSStatus, NSDictionary *))cancelBlock
                           move:(BOOL)move
                          error:(NSError**)error
@@ -440,7 +444,7 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     if( !move )
     {
         DO_FAILABLE(err, FSCopyObjectAsync,
-                    fileOp, &fromRef, &toRef, NULL,
+                    fileOp, &fromRef, &toRef, destName,
                     flags, MyFSFileOperationStatusProc, 1, &context);
     }
     else
@@ -465,23 +469,27 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     FAIL_IFQ(finisher.canceled, err = errTEUserCanceled);
     if( !move )
     {
-        // now we need to simply move all of the items up one directory
-        subitems = [self contentsOfDirectoryAtURL:resultURL
-                       includingPropertiesForKeys:$a(NSURLLocalizedNameKey)
-                                          options:0
-                                            error:&ourErr];
-        FAIL_IF(!subitems, err = (OSStatus)[ourErr code]);
         
-        for ( NSURL *item in subitems ) {
-            NSURL *newURL = [[resultURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:[item lastPathComponent]];
-            if ( ![blacklist containsObject:[item lastPathComponent]] && ![self moveItemAtURL:item toURL:newURL error:&ourErr] ) {
-                log_warn("failed to move: '%@' => '%@': %@", item, newURL, ourErr);
-                success = NO;
+        if( upOneLevel )
+        {
+            // now we need to simply move all of the items up one directory
+            subitems = [self contentsOfDirectoryAtURL:resultURL
+                           includingPropertiesForKeys:$a(NSURLLocalizedNameKey)
+                                              options:0
+                                                error:&ourErr];
+            FAIL_IF(!subitems, err = (OSStatus)[ourErr code]);
+            
+            for ( NSURL *item in subitems ) {
+                NSURL *newURL = [[resultURL URLByDeletingLastPathComponent] URLByAppendingPathComponent:[item lastPathComponent]];
+                if ( ![blacklist containsObject:[item lastPathComponent]] && ![self moveItemAtURL:item toURL:newURL error:&ourErr] ) {
+                    log_warn("failed to move: '%@' => '%@': %@", item, newURL, ourErr);
+                    success = NO;
+                }
             }
+            FAIL_IF(!success, err = errTECopySuccessMoveFail);
+            
+            [self removeItemAtURL:resultURL error:nil];
         }
-        FAIL_IF(!success, err = errTECopySuccessMoveFail);
-        
-        [self removeItemAtURL:resultURL error:nil];
     }
 fail_label:
     FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
@@ -504,7 +512,7 @@ fail_label:
                    error:(NSError**)error
 {
     
-    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:destinationName options:flags cancelBlock:cancelBlock move:YES error:error];
+    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:destinationName options:flags upOneLevel:YES cancelBlock:cancelBlock move:YES error:error];
 }
 
 - (BOOL)copyContentsFrom:(NSURL*)fromURL
@@ -514,7 +522,19 @@ fail_label:
                    error:(NSError**)error
 {
     
-    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:nil options:flags cancelBlock:cancelBlock move:NO error:error];
+    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:nil options:flags upOneLevel:YES cancelBlock:cancelBlock move:NO error:error];
+}
+
+- (BOOL)copyContentsFrom:(NSURL*)fromURL
+          intoLocationAt:(NSURL*)toURL
+         destinationName:(NSString*)destinationName
+                 options:(OptionBits)flags
+              upOneLevel:(BOOL)upOneLevel
+             cancelBlock:(BOOL(^)(OSStatus err, NSDictionary *dict))cancelBlock
+                   error:(NSError**)error
+{
+    
+    return [self copyOrMoveContentsFrom:fromURL intoLocationAt:toURL destinationName:destinationName options:flags upOneLevel:upOneLevel  cancelBlock:cancelBlock move:NO error:error];
 }
 
 - (BOOL)folderAtPath:(NSString *)path isAtLeast:(int32_t)megs
