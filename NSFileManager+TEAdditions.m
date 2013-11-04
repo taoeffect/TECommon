@@ -356,7 +356,9 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
                     log_err("error %d during size calc for: %@", fsErr, (__bridge NSURL*)url);
                     totalSize = NSUIntegerMax;
                 } else {
-					log_warn("accessDenied during size calc for: %@", (__bridge NSURL*)url);
+                    NSURL *nsURL = (__bridge NSURL*)url;
+                    if ( ![[[nsURL path] lastPathComponent] isEqualToString:@".Trashes"] )
+                        log_warn("accessDenied during size calc for: %@", nsURL);
 					totalSize = 0;
 				}
                 CFRelease(url);
