@@ -302,6 +302,10 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
 {
     NSUInteger totalSize = 0;
 	FSIterator thisDirEnum;
+    static NSDictionary *ignoreErrorsList = nil;
+    if ( __unlikely(ignoreErrorsList == nil) )
+        ignoreErrorsList = @{@".Trashes": @YES, @".DocumentRevisions-V100": @YES};
+    
 	if (FSOpenIterator(theFileRef, kFSIterateFlat, &thisDirEnum) == noErr)
 	{
 		const ItemCount kMaxEntriesPerFetch = 256;
@@ -357,7 +361,7 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
                     totalSize = NSUIntegerMax;
                 } else {
                     NSURL *nsURL = (__bridge NSURL*)url;
-                    if ( ![[[nsURL path] lastPathComponent] isEqualToString:@".Trashes"] )
+                    if ( ! ignoreErrorsList[ [[nsURL path] lastPathComponent] ] )
                         log_warn("accessDenied during size calc for: %@", nsURL);
 					totalSize = 0;
 				}
