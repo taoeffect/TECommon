@@ -423,7 +423,9 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     FSRef fromRef, toRef;
     NSURL *resultURL;
     FSFileOperationClientContext context;
-    NSArray *blacklist = $a(@".DS_Store", @".Trashes", @".fseventsd", @".Spotlight-V100", @".com.apple.timemachine.supported", @".VolumeIcon.icns", @"Icon\r"), *subitems;
+    NSArray *subitems, *blacklist = $a(@".DS_Store", @".Trashes", @".fseventsd", @".Spotlight-V100",
+                                       @".com.apple.timemachine.supported", @".VolumeIcon.icns", @"Icon\r",
+                                       @".DocumentRevisions-V100", @".hotfiles.btree");
     BOOL success = YES;
     NSRunLoop *runLoop = [NSRunLoop currentRunLoop];//[NSRunLoop mainRunLoop];
     CFRunLoopRef runLoopRef = [runLoop getCFRunLoop];
