@@ -167,16 +167,16 @@ BOOL $equal(id obj1, id obj2);      // Like -isEqual: but works even if either/b
 
 // -- alerts --
 
-#define TERunAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ARGS...) ({ \
+#define TERunAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ...) ({ \
     [NSApp activateIgnoringOtherApps:YES]; \
-    NSLog(@"WARN (%s:%d): %@", __func__, __LINE__, $sprintf(MSG, ##ARGS)); \
-    NSRunAlertPanel(TITLE, $sprintf(MSG, ##ARGS), DEFAULT, ALT, OTHER); \
+    NSLog(@"WARN (%s:%d): %@", __func__, __LINE__, $sprintf(MSG, ## __VA_ARGS__)); \
+    NSRunAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ## __VA_ARGS__); \
 })
 
 #define TERunCriticalAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ARGS...) ({ \
     [NSApp activateIgnoringOtherApps:YES]; \
     NSLog(@"ERROR (%s:%d): %@",  __func__, __LINE__, $sprintf(MSG, ##ARGS)); \
-    NSRunCriticalAlertPanel(TITLE, $sprintf(MSG, ##ARGS), DEFAULT, ALT, OTHER); \
+    NSRunCriticalAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ##ARGS); \
 })
 
 // why these bizarre delays to display the errors? because the dragging system is fucked
@@ -184,19 +184,19 @@ BOOL $equal(id obj1, id obj2);      // Like -isEqual: but works even if either/b
 // to dismiss the dialog, the keypress won't dismiss it, instead it will be sent post-facto
 // to whatever app he dragged the file from.
 
-#define TEDelayedAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ARGS...) do { \
+#define TEDelayedAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ...) do { \
     [NSApp activateIgnoringOtherApps:YES]; \
-    NSLog(@"WARN (%s:%d): %@", __func__, __LINE__, $sprintf(MSG, ##ARGS)); \
+    NSLog(@"WARN (%s:%d): %@", __func__, __LINE__, $sprintf(MSG, ## __VA_ARGS__)); \
     [[TEAppDelegate delegate] afterDelay:0.2 performBlockOnMainThread:^{ \
-        NSRunAlertPanel(TITLE, $sprintf(MSG, ##ARGS), DEFAULT, ALT, OTHER); \
+        NSRunAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ## __VA_ARGS__); \
     }]; \
 } while (0)
 
-#define TEDelayedAlertCriticalPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ARGS...) do { \
+#define TEDelayedAlertCriticalPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ...) do { \
     [NSApp activateIgnoringOtherApps:YES]; \
-    NSLog(@"ERROR (%s:%d): %@",  __func__, __LINE__, $sprintf(MSG, ##ARGS)); \
+    NSLog(@"ERROR (%s:%d): %@",  __func__, __LINE__, $sprintf(MSG, ## __VA_ARGS__)); \
     [[TEAppDelegate delegate] afterDelay:0.2 performBlockOnMainThread:^{ \
-        NSRunCriticalAlertPanel(TITLE, $sprintf(MSG, ##ARGS), DEFAULT, ALT, OTHER); \
+        NSRunCriticalAlertPanel(TITLE, MSG, DEFAULT, ALT, OTHER, ## __VA_ARGS__); \
     }]; \
 } while (0)
 
