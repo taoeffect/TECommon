@@ -236,7 +236,9 @@ fail_label:
     BOOL isVolume = NO;
     
     CFURLGetFSRef((__bridge CFURLRef)url, &fsRef);
-    DO_FAILABLE(err, FSGetCatalogInfo, &fsRef, kFSCatInfoVolume, &catalogInfo, NULL, NULL, NULL);
+    err = FSGetCatalogInfo(&fsRef, kFSCatInfoVolume, &catalogInfo, NULL, NULL, NULL);
+    FAIL_IFQ(err == nsvErr);
+    FAIL_IF(err != noErr);
     volRefNum = catalogInfo.volume;
     DO_FAILABLE(err, FSCopyURLForVolume, volRefNum, &volURL);
     
@@ -247,7 +249,7 @@ fail_label:
     CFRelease(volURL);
     
 fail_label:
-    if ( err != noErr && error )
+    if ( err != noErr && err != nsvErr && error )
         *error = $error(err, NSLocalizedString(@"isVolume failed with error %d for:\n\n%@", @""), err, url);
     return isVolume;
 }
