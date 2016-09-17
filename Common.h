@@ -84,6 +84,7 @@
 
 #define INMAIN(...)         [[NSOperationQueue mainQueue] addOperationWithBlock:^{ __VA_ARGS__; }]
 
+// the [aBlock copy] fixes a crash on macOS Sierra (Espionage issue #399)
 #define INMAINWAIT(...) do { \
     void(^aBlock)() = ^{ \
         __VA_ARGS__; \
@@ -92,7 +93,7 @@
         aBlock(); \
     else \
         [[NSOperationQueue mainQueue] addOperations: \
-                                [NSArray arrayWithObject:[NSBlockOperation blockOperationWithBlock:aBlock]] waitUntilFinished:YES]; \
+                                [NSArray arrayWithObject:[NSBlockOperation blockOperationWithBlock:[aBlock copy]]] waitUntilFinished:YES]; \
 } while (0)
 
 
