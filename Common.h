@@ -82,7 +82,7 @@
 
 #define $join(a, b)			a##b
 
-#define INMAIN(...)         [[NSOperationQueue mainQueue] addOperationWithBlock:^{ __VA_ARGS__; }]
+#define INMAIN(...)         [[NSOperationQueue mainQueue] addOperationWithBlock:[^{ __VA_ARGS__; } copy]]
 
 // the [aBlock copy] fixes a crash on macOS Sierra (Espionage issue #399)
 #define INMAINWAIT(...) do { \
