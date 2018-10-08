@@ -46,6 +46,54 @@
 #define SECTORS_TO_MEGS(_s) ( (_s * 512) / (1024 * 1024) )
 #define MEGS_TO_SECTORS(_m) ( ((1024ULL * 1024ULL) * _m) / 512ULL )
 
+
+/**
+ File Manager delegate that ignores files/folders in a blacklist
+ */
+@interface BlackListFMDelegate : NSObject<NSFileManagerDelegate>
+@property (copy) NSArray<NSString*> *blackList;
+@end
+
+
+@implementation BlackListFMDelegate
+-(id)initWithBlackList:(NSArray<NSString*> *)blackList {
+  self = [super init];
+  if( self )
+  {
+    self.blackList = blackList;
+  }
+  return self;
+}
+
+-(BOOL) shouldCopyItem:(id)item {
+  
+  if( [item respondsToSelector:@selector(lastPathComponent)]) {
+    return ![self.blackList containsObject:[item lastPathComponent]];
+  }
+  return false;
+}
+- (BOOL)fileManager:(NSFileManager *)fileManager shouldMoveItemAtPath:(NSString *)srcPath toPath:(NSString *)dstPath
+{
+  return [self shouldCopyItem:srcPath];
+}
+
+- (BOOL)fileManager:(NSFileManager *)fileManager shouldCopyItemAtPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath
+{
+  return [self shouldCopyItem:srcPath];
+}
+
+- (BOOL)fileManager:(NSFileManager *)fileManager shouldCopyItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL
+{
+  return [self shouldCopyItem:srcURL];
+}
+
+-(BOOL)fileManager:(NSFileManager *)fileManager shouldMoveItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL
+{
+  return [self shouldCopyItem:srcURL];
+}
+
+@end
+
 @implementation NSFileManager (TEAdditions)
 
 - (NSString*)moveFileUpADirectory:(NSString *)itemPath
@@ -420,22 +468,35 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
                           move:(BOOL)move
                          error:(NSError**)error
 {
-    OSStatus err;
+    OSStatus err = noErr;
     NSError *ourErr;
-    FSRef fromRef, toRef;
+  
     NSURL *resultURL;
-    FSFileOperationClientContext context;
-    NSArray *subitems, *blacklist = $a(@".DS_Store", @".Trashes", @".fseventsd", @".Spotlight-V100",
-                                       @".com.apple.timemachine.supported", @".VolumeIcon.icns", @"Icon\r",
-                                       @".DocumentRevisions-V100", @".hotfiles.btree");
     BOOL success = YES;
+  NSArray *subitems, *blacklist = @[@".DS_Store", @".Trashes", @".fseventsd", @".Spotlight-V100",
+                                       @".com.apple.timemachine.supported", @".VolumeIcon.icns", @"Icon\r",
+                                       @".DocumentRevisions-V100", @".hotfiles.btree"];
+  FSFileOperationRef fileOp = NULL;
+  CFRunLoopRef runLoopRef = NULL;
+  resultURL = [toURL URLByAppendingPathComponent:[fromURL lastPathComponent] isDirectory:YES];
+
+  bool useFS = true;
+  if (@available(macOS 10.14, *)) {
+    useFS = move;  // In mojave or later, use NSFileManager to copy and legacy FS to move
+  }
+
+  if (useFS) {
+    
+    FSRef fromRef, toRef;
+    FSFileOperationClientContext context;
+
+    fileOp = FSFileOperationCreate(NULL);
     NSRunLoop *runLoop = [NSRunLoop currentRunLoop];//[NSRunLoop mainRunLoop];
     CFRunLoopRef runLoopRef = [runLoop getCFRunLoop];
-    FSFileOperationRef fileOp = FSFileOperationCreate(NULL);
+
     CFURLGetFSRef((__bridge CFURLRef)fromURL, &fromRef);
     CFURLGetFSRef((__bridge CFURLRef)toURL, &toRef);
     CFStringRef  destName = (__bridge CFStringRef)destinationName;
-    resultURL = [toURL URLByAppendingPathComponent:[fromURL lastPathComponent] isDirectory:YES];
     
     struct MyFSStruct finisher;
     
@@ -477,6 +538,20 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
 #endif
     
     FAIL_IFQ(finisher.canceled, err = errTEUserCanceled);
+    
+  } else { // If macOS > 10.14 && copying (Because of FSCopyObjectAsync bug in Mohave )
+    NSFileManager *fileManager = [NSFileManager new];
+    BlackListFMDelegate *blackListDelegate = [[BlackListFMDelegate alloc] initWithBlackList:blacklist];
+    
+    [fileManager setDelegate:blackListDelegate];
+    success =  [fileManager copyItemAtURL:fromURL toURL:resultURL error:&ourErr];
+    FAIL_IF(!success, err = errTECopySuccessMoveFail);
+    
+    
+  }
+  
+  
+  
     if( !move )
     {
         
@@ -502,9 +577,11 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
         }
     }
 fail_label:
+  if( fileOp ) {
     FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
     CFRelease(fileOp);
-    
+  }
+
     if ( err != noErr ) {
         log_err("error %d durng copy of: %@", err, fromURL);
         if ( error )
