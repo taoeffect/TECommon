@@ -57,39 +57,39 @@
 
 @implementation BlackListFMDelegate
 -(id)initWithBlackList:(NSArray<NSString*> *)blackList {
-  self = [super init];
-  if( self )
-  {
-    self.blackList = blackList;
-  }
-  return self;
+    self = [super init];
+    if( self )
+    {
+        self.blackList = blackList;
+    }
+    return self;
 }
 
 -(BOOL) shouldCopyItem:(id)item {
-  
-  if( [item respondsToSelector:@selector(lastPathComponent)]) {
-    return ![self.blackList containsObject:[item lastPathComponent]];
-  }
-  return false;
+    
+    if( [item respondsToSelector:@selector(lastPathComponent)]) {
+        return ![self.blackList containsObject:[item lastPathComponent]];
+    }
+    return false;
 }
 - (BOOL)fileManager:(NSFileManager *)fileManager shouldMoveItemAtPath:(NSString *)srcPath toPath:(NSString *)dstPath
 {
-  return [self shouldCopyItem:srcPath];
+    return [self shouldCopyItem:srcPath];
 }
 
 - (BOOL)fileManager:(NSFileManager *)fileManager shouldCopyItemAtPath:(nonnull NSString *)srcPath toPath:(nonnull NSString *)dstPath
 {
-  return [self shouldCopyItem:srcPath];
+    return [self shouldCopyItem:srcPath];
 }
 
 - (BOOL)fileManager:(NSFileManager *)fileManager shouldCopyItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL
 {
-  return [self shouldCopyItem:srcURL];
+    return [self shouldCopyItem:srcURL];
 }
 
 -(BOOL)fileManager:(NSFileManager *)fileManager shouldMoveItemAtURL:(NSURL *)srcURL toURL:(NSURL *)dstURL
 {
-  return [self shouldCopyItem:srcURL];
+    return [self shouldCopyItem:srcURL];
 }
 
 @end
@@ -98,77 +98,77 @@
 
 - (NSString*)moveFileUpADirectory:(NSString *)itemPath
 {
-	return [self moveFile:itemPath toDirectory:[[itemPath stringByDeletingLastPathComponent] stringByDeletingLastPathComponent]];
+    return [self moveFile:itemPath toDirectory:[[itemPath stringByDeletingLastPathComponent] stringByDeletingLastPathComponent]];
 }
 
 - (NSString*)moveFile:(NSString *)itemPath toDirectory:(NSString *)dir
 {
-	NSString *itemName = [itemPath lastPathComponent];
-	NSString *dest = [dir stringByAppendingPathComponent:itemName];
-	OSStatus err = noErr;
-	
-	log_debug("moving item (%@) to: %@", itemPath, dest);
-	
-	FAIL_IF([self fileExistsAtPath:dest], err = fidExists; log_err("can't move, destination exists: %@", dest));
-	
-	DO_FAILABLE_SUB(err, errno, rename, [itemPath fileSystemRepresentation], [dest fileSystemRepresentation]);
-	//	BOOL success = [self movePath:itemPath toPath:dest handler:nil];
-	//	if ( !success ) log_err("couldn't move file up a directory: '%@'", itemPath);
-	
+    NSString *itemName = [itemPath lastPathComponent];
+    NSString *dest = [dir stringByAppendingPathComponent:itemName];
+    OSStatus err = noErr;
+    
+    log_debug("moving item (%@) to: %@", itemPath, dest);
+    
+    FAIL_IF([self fileExistsAtPath:dest], err = fidExists; log_err("can't move, destination exists: %@", dest));
+    
+    DO_FAILABLE_SUB(err, errno, rename, [itemPath fileSystemRepresentation], [dest fileSystemRepresentation]);
+    //	BOOL success = [self movePath:itemPath toPath:dest handler:nil];
+    //	if ( !success ) log_err("couldn't move file up a directory: '%@'", itemPath);
+    
 fail_label:
-	return err == noErr ? dest : nil;
+    return err == noErr ? dest : nil;
 }
 
 - (NSString*)renameItemAtPath:(NSString *)path to:(NSString *)newName
 {
-	NSString *newPath = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent:newName];
-	log_debug("renaming '%@' to '%@'", path, newPath);
-	
-	if ( [self fileExistsAtPath:newPath] ) {
-		log_err("file exists: %@", newPath);
-		return nil;
-	}
-	if ( rename([path fileSystemRepresentation], [newPath fileSystemRepresentation]) != 0 ) {
-		log_errp("couldn't rename '%@' to '%@'", path, newPath);
-		return nil;
-	}
-	return newPath;
+    NSString *newPath = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent:newName];
+    log_debug("renaming '%@' to '%@'", path, newPath);
+    
+    if ( [self fileExistsAtPath:newPath] ) {
+        log_err("file exists: %@", newPath);
+        return nil;
+    }
+    if ( rename([path fileSystemRepresentation], [newPath fileSystemRepresentation]) != 0 ) {
+        log_errp("couldn't rename '%@' to '%@'", path, newPath);
+        return nil;
+    }
+    return newPath;
 }
 
 - (NSString*)forceRenameItemAtPath:(NSString *)path to:(NSString *)newName
 {
-	NSString *destination = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent:newName];
-	
-	if ( [self fileExistsAtPath:destination] )
-	{
-		log_info("rename of '%@' to '%@' being forced because of existing file", path, destination);
-		NSString *pathExtention = [destination pathExtension];
-		NSString *pathWithoutExtention = [destination stringByDeletingPathExtension];
-		NSString *now = [[NSCalendarDate calendarDate] descriptionWithCalendarFormat:@" %H-%M-%S"];
-		
-		destination = [pathWithoutExtention stringByAppendingString:now];
-		
-		if ( ! [pathExtention isEqualToString:@""] )
-			destination = [destination stringByAppendingPathExtension:pathExtention];
-		
-		log_info("new destination: '%@'", destination);
-	}
-	if ( rename([path fileSystemRepresentation], [destination fileSystemRepresentation]) != 0 ) {
-		log_errp("couldn't rename '%@' to '%@'", path, destination);
-		return nil;
-	}
-	return destination;
+    NSString *destination = [[path stringByDeletingLastPathComponent] stringByAppendingPathComponent:newName];
+    
+    if ( [self fileExistsAtPath:destination] )
+    {
+        log_info("rename of '%@' to '%@' being forced because of existing file", path, destination);
+        NSString *pathExtention = [destination pathExtension];
+        NSString *pathWithoutExtention = [destination stringByDeletingPathExtension];
+        NSString *now = [[NSCalendarDate calendarDate] descriptionWithCalendarFormat:@" %H-%M-%S"];
+        
+        destination = [pathWithoutExtention stringByAppendingString:now];
+        
+        if ( ! [pathExtention isEqualToString:@""] )
+            destination = [destination stringByAppendingPathExtension:pathExtention];
+        
+        log_info("new destination: '%@'", destination);
+    }
+    if ( rename([path fileSystemRepresentation], [destination fileSystemRepresentation]) != 0 ) {
+        log_errp("couldn't rename '%@' to '%@'", path, destination);
+        return nil;
+    }
+    return destination;
 }
 
 // from: http://www.cocoadev.com/index.pl?FinderFlags
 - (BOOL)modifyCatologInfoAtPath:(NSString *)filePath isVisible:(BOOL)isVisible
 {
-	return [self modifyCatalogFlag:kIsInvisible forPath:filePath enable:!isVisible];
+    return [self modifyCatalogFlag:kIsInvisible forPath:filePath enable:!isVisible];
 }
 
 - (BOOL)modifyCatologInfoAtPath:(NSString *)filePath hasCustomIcon:(BOOL)hasCustomIcon
 {
-	return [self modifyCatalogFlag:kHasCustomIcon forPath:filePath enable:hasCustomIcon];
+    return [self modifyCatalogFlag:kHasCustomIcon forPath:filePath enable:hasCustomIcon];
 }
 - (BOOL)modifyCatologInfoAtURL:(NSURL *)fileURL hasCustomIcon:(BOOL)hasCustomIcon
 {
@@ -182,93 +182,93 @@ fail_label:
 - (BOOL)modifyCatalogFlag:(NSInteger)flag forURL:(NSURL*)fileURL enable:(BOOL)enable
 {
     FSRef pathRef;
-	FSCatalogInfo catalogInfo;
-	FileInfo *fileInfo;
-	OSErr err = noErr;
-	
+    FSCatalogInfo catalogInfo;
+    FileInfo *fileInfo;
+    OSErr err = noErr;
+    
     FAIL_IF(!CFURLGetFSRef((__bridge CFURLRef)fileURL, &pathRef));
-	DO_FAILABLE(err, FSGetCatalogInfo, &pathRef, kFSCatInfoFinderInfo, &catalogInfo, NULL, NULL, NULL);
-	
-	fileInfo = (FileInfo*)&catalogInfo.finderInfo;
-	
-	if ( !enable && (flag & fileInfo->finderFlags) == flag )
-		fileInfo->finderFlags ^= flag;
-	else if ( enable )
-		fileInfo->finderFlags |= flag;
-	
-	DO_FAILABLE(err, FSSetCatalogInfo, &pathRef, kFSCatInfoFinderInfo, &catalogInfo);
-	return YES;
+    DO_FAILABLE(err, FSGetCatalogInfo, &pathRef, kFSCatInfoFinderInfo, &catalogInfo, NULL, NULL, NULL);
+    
+    fileInfo = (FileInfo*)&catalogInfo.finderInfo;
+    
+    if ( !enable && (flag & fileInfo->finderFlags) == flag )
+        fileInfo->finderFlags ^= flag;
+    else if ( enable )
+        fileInfo->finderFlags |= flag;
+    
+    DO_FAILABLE(err, FSSetCatalogInfo, &pathRef, kFSCatInfoFinderInfo, &catalogInfo);
+    return YES;
 fail_label:
-	return NO;
+    return NO;
 }
 
 - (BOOL)folderHasCustomIcon:(NSString *)folderPath
 {
-	FSRef pathRef;
-	FSCatalogInfo catalogInfo;
-	
-	if (FSPathMakeRef((const UInt8 *)[folderPath fileSystemRepresentation], &pathRef, NULL) != 0)
-		return NO;
-	
-	if (FSGetCatalogInfo(&pathRef, kFSCatInfoFinderInfo, &catalogInfo, NULL, NULL, NULL) != 0)
-		return NO;
-	
-	return (((FileInfo*)&catalogInfo.finderInfo)->finderFlags & kHasCustomIcon) > 0;
+    FSRef pathRef;
+    FSCatalogInfo catalogInfo;
+    
+    if (FSPathMakeRef((const UInt8 *)[folderPath fileSystemRepresentation], &pathRef, NULL) != 0)
+        return NO;
+    
+    if (FSGetCatalogInfo(&pathRef, kFSCatInfoFinderInfo, &catalogInfo, NULL, NULL, NULL) != 0)
+        return NO;
+    
+    return (((FileInfo*)&catalogInfo.finderInfo)->finderFlags & kHasCustomIcon) > 0;
 }
 
 - (BOOL)deleteIfEmpty:(NSString*)path
 {
-	BOOL isDir;
-	if ( ![self fileExistsAtPath:path isDirectory:&isDir] || !isDir ) return NO;
-	NSArray *contents = [self contentsOfDirectoryAtPath:path error:nil];
-	if ( [contents count] > 1 ) return NO;
-	if ( [contents count] == 1 && ![[contents objectAtIndex:0] isEqualToString:@".DS_Store"] ) return NO;
-	return [self removeItemAtPath:path error:nil];
+    BOOL isDir;
+    if ( ![self fileExistsAtPath:path isDirectory:&isDir] || !isDir ) return NO;
+    NSArray *contents = [self contentsOfDirectoryAtPath:path error:nil];
+    if ( [contents count] > 1 ) return NO;
+    if ( [contents count] == 1 && ![[contents objectAtIndex:0] isEqualToString:@".DS_Store"] ) return NO;
+    return [self removeItemAtPath:path error:nil];
 }
 
 - (BOOL)isSymbolicLinkAtPath:(NSString *)path
 {
-	NSDictionary *fileAttrs = [self attributesOfItemAtPath:path error:nil];
-	return [fileAttrs objectForKey:NSFileType] == NSFileTypeSymbolicLink;
+    NSDictionary *fileAttrs = [self attributesOfItemAtPath:path error:nil];
+    return [fileAttrs objectForKey:NSFileType] == NSFileTypeSymbolicLink;
 }
 
 - (BOOL)isAliasFolderAtPath:(NSString *)path
 {
-	FSRef fileRef;
-	OSStatus err = noErr;
-	Boolean aliasFileFlag, folderFlag;
-	NSURL *fileURL = [NSURL fileURLWithPath:path];
-	
-	if (FALSE == CFURLGetFSRef((__bridge CFURLRef)fileURL, &fileRef))
-		err = coreFoundationUnknownErr;
-	
-	if (noErr == err)
-		err = FSIsAliasFile(&fileRef, &aliasFileFlag, &folderFlag);
-	
-	if (noErr == err)
-		return (BOOL)(aliasFileFlag && folderFlag);
-	else
-		return NO;	
+    FSRef fileRef;
+    OSStatus err = noErr;
+    Boolean aliasFileFlag, folderFlag;
+    NSURL *fileURL = [NSURL fileURLWithPath:path];
+    
+    if (FALSE == CFURLGetFSRef((__bridge CFURLRef)fileURL, &fileRef))
+        err = coreFoundationUnknownErr;
+    
+    if (noErr == err)
+        err = FSIsAliasFile(&fileRef, &aliasFileFlag, &folderFlag);
+    
+    if (noErr == err)
+        return (BOOL)(aliasFileFlag && folderFlag);
+    else
+        return NO;	
 }
 
 - (BOOL)isDirectoryAtPath:(NSString *)path
 {
-	BOOL isDir = NO;
-	[self fileExistsAtPath:path isDirectory:&isDir];
-	return isDir;
+    BOOL isDir = NO;
+    [self fileExistsAtPath:path isDirectory:&isDir];
+    return isDir;
 }
 
 - (BOOL)isVolumeAtPath:(NSString *)from
 {
-	struct statfs sfs;
-	char path[MAXPATHLEN];
-	
-	// Can't mv(1) a mount point.
-	if (realpath([from fileSystemRepresentation], path) == NULL) {
-		log_warn("cannot resolve %@: %s", from, path);
-		return NO;
-	}
-	BOOL isVol = !statfs(path, &sfs) && !strcmp(path, sfs.f_mntonname);
+    struct statfs sfs;
+    char path[MAXPATHLEN];
+    
+    // Can't mv(1) a mount point.
+    if (realpath([from fileSystemRepresentation], path) == NULL) {
+        log_warn("cannot resolve %@: %s", from, path);
+        return NO;
+    }
+    BOOL isVol = !statfs(path, &sfs) && !strcmp(path, sfs.f_mntonname);
     log_debug("%s: '%s': %u %u %u'", __func__, path, sfs.f_type, sfs.f_flags, sfs.f_fssubtype);
     return isVol;
 }
@@ -304,26 +304,26 @@ fail_label:
 
 - (NSString *)fileSystemDescriptionAtMount:(NSString *)mountPoint
 {
-	struct statfs sfs;
-	
-	if ( statfs([mountPoint fileSystemRepresentation], &sfs) ) {
-		log_errp("statfs failed for '%@'", mountPoint);
-		return nil;
-	}
-	
-	return [NSString stringWithUTF8String:sfs.f_mntfromname];
+    struct statfs sfs;
+    
+    if ( statfs([mountPoint fileSystemRepresentation], &sfs) ) {
+        log_errp("statfs failed for '%@'", mountPoint);
+        return nil;
+    }
+    
+    return [NSString stringWithUTF8String:sfs.f_mntfromname];
 }
 
 - (NSString *)volnameAtURL:(NSURL*)url
 {
     OSStatus      err;
     FSRef         fsRef;
-	FSCatalogInfo catalogInfo;
+    FSCatalogInfo catalogInfo;
     HFSUniStr255  volName;
     NSString *volumeName = nil;
     
     FAIL_IF(!CFURLGetFSRef((__bridge CFURLRef)url, &fsRef));
-	DO_FAILABLE(err, FSGetCatalogInfo, &fsRef, kFSCatInfoVolume, &catalogInfo, NULL, NULL, NULL);
+    DO_FAILABLE(err, FSGetCatalogInfo, &fsRef, kFSCatInfoVolume, &catalogInfo, NULL, NULL, NULL);
     DO_FAILABLE(err, FSGetVolumeInfo, catalogInfo.volume, 0, NULL, kFSVolInfoNone, NULL, &volName, NULL);
     volumeName = [NSString stringWithCharacters:volName.unicode length:volName.length];
 fail_label:
@@ -332,17 +332,17 @@ fail_label:
 
 - (BOOL)isReadOnlyFSAtPath:(NSString *)path
 {
-	struct statfs sfs;
-	statfs([path fileSystemRepresentation], &sfs);
-	return (sfs.f_flags & MNT_RDONLY) > 0;
+    struct statfs sfs;
+    statfs([path fileSystemRepresentation], &sfs);
+    return (sfs.f_flags & MNT_RDONLY) > 0;
     
 }
 
 - (int64_t)approxSizeOfFolderAtPath:(NSString *)path
 {
-	int64_t sectorCount = num512BlocksInDir((char*)[path fileSystemRepresentation]);
-	if ( sectorCount < 0 ) return sectorCount;
-	return SECTORS_TO_MEGS(sectorCount);
+    int64_t sectorCount = num512BlocksInDir((char*)[path fileSystemRepresentation]);
+    if ( sectorCount < 0 ) return sectorCount;
+    return SECTORS_TO_MEGS(sectorCount);
 }
 
 // See: http://www.cocoabuilder.com/archive/cocoa/136498-obtain-directory-size.html#136503
@@ -351,57 +351,57 @@ fail_label:
 static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger curSize), NSUInteger curSize)
 {
     NSUInteger totalSize = 0;
-	FSIterator thisDirEnum;
+    FSIterator thisDirEnum;
     static NSDictionary *ignoreErrorsList = nil;
     if ( __unlikely(ignoreErrorsList == nil) )
         ignoreErrorsList = @{@".Trashes": @YES, @".DocumentRevisions-V100": @YES};
     
-	if (FSOpenIterator(theFileRef, kFSIterateFlat, &thisDirEnum) == noErr)
-	{
-		const ItemCount kMaxEntriesPerFetch = 256;
-		struct SFetchedInfo
-		{
-			FSRef		   fFSRefs[kMaxEntriesPerFetch];
-			FSCatalogInfo  fInfos[kMaxEntriesPerFetch];
-		};
-		// allocate on heap as otherwise we might overflow the stack, these are large structures
+    if (FSOpenIterator(theFileRef, kFSIterateFlat, &thisDirEnum) == noErr)
+    {
+        const ItemCount kMaxEntriesPerFetch = 256;
+        struct SFetchedInfo
+        {
+            FSRef		   fFSRefs[kMaxEntriesPerFetch];
+            FSCatalogInfo  fInfos[kMaxEntriesPerFetch];
+        };
+        // allocate on heap as otherwise we might overflow the stack, these are large structures
         // and we might be recursing deeply
-		struct SFetchedInfo *fetched = (struct SFetchedInfo*)malloc(sizeof(struct SFetchedInfo));
-		if (fetched != NULL)
-		{
-			ItemCount  actualFetched;
+        struct SFetchedInfo *fetched = (struct SFetchedInfo*)malloc(sizeof(struct SFetchedInfo));
+        if (fetched != NULL)
+        {
+            ItemCount  actualFetched;
             BOOL isCanceled = NO;
-			OSErr	   fsErr = FSGetCatalogInfoBulk(thisDirEnum, kMaxEntriesPerFetch, &actualFetched,
-													NULL, kFSCatInfoDataSizes | kFSCatInfoNodeFlags,
+            OSErr	   fsErr = FSGetCatalogInfoBulk(thisDirEnum, kMaxEntriesPerFetch, &actualFetched,
+                                                    NULL, kFSCatInfoDataSizes | kFSCatInfoNodeFlags,
                                                     fetched->fInfos, fetched->fFSRefs, NULL, NULL);
             
-			while (!isCanceled && ((fsErr == noErr) || (fsErr == errFSNoMoreItems)))
-			{
-				ItemCount thisIndex;
-				for (thisIndex = 0; thisIndex < actualFetched; thisIndex++)
-				{
+            while (!isCanceled && ((fsErr == noErr) || (fsErr == errFSNoMoreItems)))
+            {
+                ItemCount thisIndex;
+                for (thisIndex = 0; thisIndex < actualFetched; thisIndex++)
+                {
                     if ( cancelBlock && (isCanceled = cancelBlock(curSize + totalSize)) )
                         break; // user canceled size calculation, get out of here
                     
-					if (fetched->fInfos[thisIndex].nodeFlags & kFSNodeIsDirectoryMask) {
+                    if (fetched->fInfos[thisIndex].nodeFlags & kFSNodeIsDirectoryMask) {
                         NSUInteger size = _fastSize(&(fetched->fFSRefs[thisIndex]), cancelBlock, curSize); // it's a folder, recurse
                         if ( size == NSUIntegerMax ) {
                             totalSize = size;
                             goto fail_label;
                         }
-						totalSize += size;
-					} else
-						totalSize += fetched->fInfos[thisIndex].dataLogicalSize;
-				}
+                        totalSize += size;
+                    } else
+                        totalSize += fetched->fInfos[thisIndex].dataLogicalSize;
+                }
                 
-				if (fsErr == errFSNoMoreItems)
-					break;
+                if (fsErr == errFSNoMoreItems)
+                    break;
                 
                 // get more items
                 fsErr = FSGetCatalogInfoBulk(thisDirEnum, kMaxEntriesPerFetch, &actualFetched,
                                              NULL, kFSCatInfoDataSizes | kFSCatInfoNodeFlags,
                                              fetched->fInfos, fetched->fFSRefs, NULL, NULL);
-			}
+            }
             
             if ( fsErr != noErr && fsErr != errFSNoMoreItems && !isCanceled ) {
                 CFURLRef url = CFURLCreateFromFSRef(NULL, theFileRef);
@@ -413,16 +413,16 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
                     NSURL *nsURL = (__bridge NSURL*)url;
                     if ( ! ignoreErrorsList[ [[nsURL path] lastPathComponent] ] )
                         log_warn("accessDenied during size calc for: %@", nsURL);
-					totalSize = 0;
-				}
+                    totalSize = 0;
+                }
                 CFRelease(url);
             }
         fail_label:
-			free(fetched);
-		}
-		FSCloseIterator(thisDirEnum);
-	}
-	return totalSize;
+            free(fetched);
+        }
+        FSCloseIterator(thisDirEnum);
+    }
+    return totalSize;
 }
 
 - (NSUInteger)fastFolderSizeAtFSRef:(FSRef *)theFileRef cancelBlock:(BOOL(^)(NSUInteger curSize))cancelBlock
@@ -470,88 +470,88 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
 {
     OSStatus err = noErr;
     NSError *ourErr;
-  
+    
     NSURL *resultURL;
     BOOL success = YES;
-  NSArray *subitems, *blacklist = @[@".DS_Store", @".Trashes", @".fseventsd", @".Spotlight-V100",
-                                       @".com.apple.timemachine.supported", @".VolumeIcon.icns", @"Icon\r",
-                                       @".DocumentRevisions-V100", @".hotfiles.btree"];
-  FSFileOperationRef fileOp = NULL;
-  CFRunLoopRef runLoopRef = NULL;
-  resultURL = [toURL URLByAppendingPathComponent:[fromURL lastPathComponent] isDirectory:YES];
-
-  bool useFS = true;
-  if (@available(macOS 10.14, *)) {
-    useFS = move;  // In mojave or later, use NSFileManager to copy and legacy FS to move
-  }
-
-  if (useFS) {
+    NSArray *subitems, *blacklist = @[@".DS_Store", @".Trashes", @".fseventsd", @".Spotlight-V100",
+                                      @".com.apple.timemachine.supported", @".VolumeIcon.icns", @"Icon\r",
+                                      @".DocumentRevisions-V100", @".hotfiles.btree"];
+    FSFileOperationRef fileOp = NULL;
+    CFRunLoopRef runLoopRef = NULL;
+    resultURL = [toURL URLByAppendingPathComponent:[fromURL lastPathComponent] isDirectory:YES];
     
-    FSRef fromRef, toRef;
-    FSFileOperationClientContext context;
-
-    fileOp = FSFileOperationCreate(NULL);
-    NSRunLoop *runLoop = [NSRunLoop currentRunLoop];//[NSRunLoop mainRunLoop];
-    CFRunLoopRef runLoopRef = [runLoop getCFRunLoop];
-
-    CFURLGetFSRef((__bridge CFURLRef)fromURL, &fromRef);
-    CFURLGetFSRef((__bridge CFURLRef)toURL, &toRef);
-    CFStringRef  destName = (__bridge CFStringRef)destinationName;
-    
-    struct MyFSStruct finisher;
-    
-    finisher.info = (__bridge void *)cancelBlock;
-    finisher.canceled = NO;
-    finisher.finished = NO;
-    
-    context.version = 0;
-    context.info = (void*)&finisher;
-    context.retain = NULL;
-    context.release = NULL;
-    context.copyDescription = NULL;
-    
-    DO_FAILABLE(err, FSFileOperationScheduleWithRunLoop, fileOp, runLoopRef, kCFRunLoopDefaultMode);
-    
-    if( !move )
-    {
-        DO_FAILABLE(err, FSCopyObjectAsync,
-                    fileOp, &fromRef, &toRef, destName,
-                    flags, MyFSFileOperationStatusProc, 1, &context);
+    bool useFS = true;
+    if (@available(macOS 10.14, *)) {
+        useFS = move;  // In mojave or later, use NSFileManager to copy and legacy FS to move
     }
-    else
-    {
-        DO_FAILABLE(err, FSMoveObjectAsync,
-                    fileOp, &fromRef, &toRef, destName,
-                    flags, MyFSFileOperationStatusProc, 1, &context);     
-    }
+    
+    if (useFS) {
+        
+        FSRef fromRef, toRef;
+        FSFileOperationClientContext context;
+        
+        fileOp = FSFileOperationCreate(NULL);
+        NSRunLoop *runLoop = [NSRunLoop currentRunLoop];//[NSRunLoop mainRunLoop];
+        CFRunLoopRef runLoopRef = [runLoop getCFRunLoop];
+        
+        CFURLGetFSRef((__bridge CFURLRef)fromURL, &fromRef);
+        CFURLGetFSRef((__bridge CFURLRef)toURL, &toRef);
+        CFStringRef  destName = (__bridge CFStringRef)destinationName;
+        
+        struct MyFSStruct finisher;
+        
+        finisher.info = (__bridge void *)cancelBlock;
+        finisher.canceled = NO;
+        finisher.finished = NO;
+        
+        context.version = 0;
+        context.info = (void*)&finisher;
+        context.retain = NULL;
+        context.release = NULL;
+        context.copyDescription = NULL;
+        
+        DO_FAILABLE(err, FSFileOperationScheduleWithRunLoop, fileOp, runLoopRef, kCFRunLoopDefaultMode);
+        
+        if( !move )
+        {
+            DO_FAILABLE(err, FSCopyObjectAsync,
+                        fileOp, &fromRef, &toRef, destName,
+                        flags, MyFSFileOperationStatusProc, 1, &context);
+        }
+        else
+        {
+            DO_FAILABLE(err, FSMoveObjectAsync,
+                        fileOp, &fromRef, &toRef, destName,
+                        flags, MyFSFileOperationStatusProc, 1, &context);     
+        }
 #if !defined(RUN_SHIT_ON_MAIN_RUNLOOP)
-    while (!(finisher.finished) && [runLoop runMode:NSDefaultRunLoopMode
-                                         beforeDate:[NSDate distantFuture]])
-    {
-        //log_debug("%s: running copy runloop...", __func__);
-    }
+        while (!(finisher.finished) && [runLoop runMode:NSDefaultRunLoopMode
+                                             beforeDate:[NSDate distantFuture]])
+        {
+            //log_debug("%s: running copy runloop...", __func__);
+        }
 #else
-    while (! (finisher.finished) )
-    {
-        usleep(2000);//log_debug("%s: running copy runloop...", __func__);
-    }
+        while (! (finisher.finished) )
+        {
+            usleep(2000);//log_debug("%s: running copy runloop...", __func__);
+        }
 #endif
+        
+        FAIL_IFQ(finisher.canceled, err = errTEUserCanceled);
+        
+    } else { // If macOS > 10.14 && copying (Because of FSCopyObjectAsync bug in Mohave )
+        NSFileManager *fileManager = [NSFileManager new];
+        BlackListFMDelegate *blackListDelegate = [[BlackListFMDelegate alloc] initWithBlackList:blacklist];
+        
+        [fileManager setDelegate:blackListDelegate];
+        success =  [fileManager copyItemAtURL:fromURL toURL:resultURL error:&ourErr];
+        FAIL_IF(!success, err = errTECopySuccessMoveFail);
+        
+        
+    }
     
-    FAIL_IFQ(finisher.canceled, err = errTEUserCanceled);
-    
-  } else { // If macOS > 10.14 && copying (Because of FSCopyObjectAsync bug in Mohave )
-    NSFileManager *fileManager = [NSFileManager new];
-    BlackListFMDelegate *blackListDelegate = [[BlackListFMDelegate alloc] initWithBlackList:blacklist];
-    
-    [fileManager setDelegate:blackListDelegate];
-    success =  [fileManager copyItemAtURL:fromURL toURL:resultURL error:&ourErr];
-    FAIL_IF(!success, err = errTECopySuccessMoveFail);
     
     
-  }
-  
-  
-  
     if( !move )
     {
         
@@ -577,11 +577,11 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
         }
     }
 fail_label:
-  if( fileOp ) {
-    FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
-    CFRelease(fileOp);
-  }
-
+    if( fileOp ) {
+        FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
+        CFRelease(fileOp);
+    }
+    
     if ( err != noErr ) {
         log_err("error %d durng copy of: %@", err, fromURL);
         if ( error )
@@ -626,238 +626,238 @@ fail_label:
 
 - (BOOL)folderAtPath:(NSString *)path isAtLeast:(int32_t)megs
 {
-	return folderAtPathAtLeast((char*)[path fileSystemRepresentation], MEGS_TO_SECTORS(megs)) == 1;
+    return folderAtPathAtLeast((char*)[path fileSystemRepresentation], MEGS_TO_SECTORS(megs)) == 1;
 }
 
 - (uid_t)ownerForPath:(NSString*)path
 {
-	struct statfs sfs;
-	if ( statfs([path fileSystemRepresentation], &sfs) ) {
-		log_errp("couldn't stat: %@", path);
-		return -1;
-	}
-	return sfs.f_owner;
+    struct statfs sfs;
+    if ( statfs([path fileSystemRepresentation], &sfs) ) {
+        log_errp("couldn't stat: %@", path);
+        return -1;
+    }
+    return sfs.f_owner;
 }
 
 - (OSStatus)ejectVolumeAtPath:(NSString *)path pid:(pid_t*)dissenter
 {
-	FSRef pathRef;
-	FSCatalogInfo catalogInfo;
-	OSStatus err = paramErr;
-	
-	FAIL_IF(dissenter == NULL, log_err("dissenter is null"));
-	
-	*dissenter = 0; // initialize it
-	
-	DO_FAILABLE(err, FSPathMakeRef, (const UInt8 *)[path fileSystemRepresentation], &pathRef, NULL);
-	DO_FAILABLE(err, FSGetCatalogInfo, &pathRef, kFSCatInfoFinderInfo, &catalogInfo, NULL, NULL, NULL);
-	DO_FAILABLE(err, FSEjectVolumeSync, catalogInfo.volume, 0, dissenter);
-	
+    FSRef pathRef;
+    FSCatalogInfo catalogInfo;
+    OSStatus err = paramErr;
+    
+    FAIL_IF(dissenter == NULL, log_err("dissenter is null"));
+    
+    *dissenter = 0; // initialize it
+    
+    DO_FAILABLE(err, FSPathMakeRef, (const UInt8 *)[path fileSystemRepresentation], &pathRef, NULL);
+    DO_FAILABLE(err, FSGetCatalogInfo, &pathRef, kFSCatInfoFinderInfo, &catalogInfo, NULL, NULL, NULL);
+    DO_FAILABLE(err, FSEjectVolumeSync, catalogInfo.volume, 0, dissenter);
+    
 fail_label:
-	return err;
+    return err;
 }
 
 - (void)notePathChanged:(NSString *)path
 {
-	[[NSWorkspace sharedWorkspace] noteFileSystemChanged:path];
-	FNNotifyByPath((UInt8*)[path fileSystemRepresentation], kFNDirectoryModifiedMessage, kNilOptions);
+    [[NSWorkspace sharedWorkspace] noteFileSystemChanged:path];
+    FNNotifyByPath((UInt8*)[path fileSystemRepresentation], kFNDirectoryModifiedMessage, kNilOptions);
 }
 
 - (OSStatus)removeACLsAtPath:(NSString *)path matchingPerm:(acl_perm_t)permFilter andTag:(acl_tag_t)tagFilter
 {
-	OSStatus err = noErr;
-	acl_t acl = NULL;
-	acl_entry_t entry = NULL;
-	
-	FAIL_IFQ(!(acl = [self aclsForFileAtPath:path]));
-	
-	DO_FAILABLE_SUB(err, errno, acl_valid, acl);
-	
-	// TODO: we don't check to see what the error value of this is because it's returning
-	//       -1 when it shouldn't.  Seems to be either my poor understanding of how to use
-	//       the API, or a bug...
-	err = acl_get_entry(acl, ACL_FIRST_ENTRY, &entry);
-	
-	while ( err == 0 )
-	{
-		//log_debug("got ACL entry for: %@", path);
-		acl_permset_t perms;
-		acl_tag_t tag;
-		
-		DO_FAILABLE_SUB(err, errno, acl_get_permset, entry, &perms);
-		DO_FAILABLE_SUB(err, errno, acl_get_tag_type, entry, &tag);
-		
-		if ( acl_get_perm_np(perms, permFilter) && tag == tagFilter ) {
-			log_info("removing ACL (%d|%d) from: %@", permFilter, tagFilter, path);
-			DO_FAILABLE_SUB(err, errno, acl_delete_entry, acl, entry);
-			
-			if ( ![self isSymbolicLinkAtPath:path] )
-				DO_FAILABLE_SUB(err, errno, acl_set_file, [path fileSystemRepresentation], ACL_TYPE_EXTENDED, acl);
-			else {
-				// see: http://0xced.blogspot.com/2009/03/chmod-acl-and-symbolic-links_23.html
-				int fd = open([path fileSystemRepresentation], O_SYMLINK);
-				FAIL_IF(fd == -1, err = errno);
-				err = acl_set_fd_np(fd, acl, ACL_TYPE_EXTENDED);
-				close(fd);
-				FAIL_IF(err, err = errno);
-			}
-		}
-		
-		err = acl_get_entry(acl, ACL_NEXT_ENTRY, &entry);
-	}
-	err = noErr; // clear out the return value of the last acl_get_entry
-	
+    OSStatus err = noErr;
+    acl_t acl = NULL;
+    acl_entry_t entry = NULL;
+    
+    FAIL_IFQ(!(acl = [self aclsForFileAtPath:path]));
+    
+    DO_FAILABLE_SUB(err, errno, acl_valid, acl);
+    
+    // TODO: we don't check to see what the error value of this is because it's returning
+    //       -1 when it shouldn't.  Seems to be either my poor understanding of how to use
+    //       the API, or a bug...
+    err = acl_get_entry(acl, ACL_FIRST_ENTRY, &entry);
+    
+    while ( err == 0 )
+    {
+        //log_debug("got ACL entry for: %@", path);
+        acl_permset_t perms;
+        acl_tag_t tag;
+        
+        DO_FAILABLE_SUB(err, errno, acl_get_permset, entry, &perms);
+        DO_FAILABLE_SUB(err, errno, acl_get_tag_type, entry, &tag);
+        
+        if ( acl_get_perm_np(perms, permFilter) && tag == tagFilter ) {
+            log_info("removing ACL (%d|%d) from: %@", permFilter, tagFilter, path);
+            DO_FAILABLE_SUB(err, errno, acl_delete_entry, acl, entry);
+            
+            if ( ![self isSymbolicLinkAtPath:path] )
+                DO_FAILABLE_SUB(err, errno, acl_set_file, [path fileSystemRepresentation], ACL_TYPE_EXTENDED, acl);
+            else {
+                // see: http://0xced.blogspot.com/2009/03/chmod-acl-and-symbolic-links_23.html
+                int fd = open([path fileSystemRepresentation], O_SYMLINK);
+                FAIL_IF(fd == -1, err = errno);
+                err = acl_set_fd_np(fd, acl, ACL_TYPE_EXTENDED);
+                close(fd);
+                FAIL_IF(err, err = errno);
+            }
+        }
+        
+        err = acl_get_entry(acl, ACL_NEXT_ENTRY, &entry);
+    }
+    err = noErr; // clear out the return value of the last acl_get_entry
+    
 fail_label:
-	if ( acl ) acl_free((void*)acl);
-	if ( err ) log_errp("failed to remove ACL (%d|%d) from: %@", permFilter, tagFilter, path);
-	return err;
+    if ( acl ) acl_free((void*)acl);
+    if ( err ) log_errp("failed to remove ACL (%d|%d) from: %@", permFilter, tagFilter, path);
+    return err;
 }
 
 - (BOOL)fileHasACLs:(NSString *)filePath matchingPerm:(acl_perm_t)permFilter andTag:(acl_tag_t)tagFilter
 {
-	OSStatus    err;
-	acl_t       acl    = NULL;
-	acl_entry_t entry  = NULL;
-	BOOL        result = NO;
-	
-	FAIL_IFQ(!(acl = [self aclsForFileAtPath:filePath]));
-	
-	err = acl_get_entry(acl, ACL_FIRST_ENTRY, &entry);
-	
-	while ( err == 0 )
-	{
-		acl_permset_t perms;
-		acl_tag_t tag;
-		
-		DO_FAILABLE_SUB(err, errno, acl_get_permset, entry, &perms);
-		DO_FAILABLE_SUB(err, errno, acl_get_tag_type, entry, &tag);
-		
-		if ( acl_get_perm_np(perms, permFilter) && tag == tagFilter ) {
-			log_debug("file matches ACL for (%d|%d): %@", permFilter, tagFilter, filePath);
-			result = YES;
-			break;
-		}
-		
-		err = acl_get_entry(acl, ACL_NEXT_ENTRY, &entry);
-	}
-	
+    OSStatus    err;
+    acl_t       acl    = NULL;
+    acl_entry_t entry  = NULL;
+    BOOL        result = NO;
+    
+    FAIL_IFQ(!(acl = [self aclsForFileAtPath:filePath]));
+    
+    err = acl_get_entry(acl, ACL_FIRST_ENTRY, &entry);
+    
+    while ( err == 0 )
+    {
+        acl_permset_t perms;
+        acl_tag_t tag;
+        
+        DO_FAILABLE_SUB(err, errno, acl_get_permset, entry, &perms);
+        DO_FAILABLE_SUB(err, errno, acl_get_tag_type, entry, &tag);
+        
+        if ( acl_get_perm_np(perms, permFilter) && tag == tagFilter ) {
+            log_debug("file matches ACL for (%d|%d): %@", permFilter, tagFilter, filePath);
+            result = YES;
+            break;
+        }
+        
+        err = acl_get_entry(acl, ACL_NEXT_ENTRY, &entry);
+    }
+    
 fail_label:
-	if ( acl ) acl_free((void*)acl);
-	return result;
+    if ( acl ) acl_free((void*)acl);
+    return result;
 }
 
 - (OSStatus)removeACL:(const char *)aclText fromFile:(NSString *)filePath
 {
-	log_err("NOT IMPLEMENTED");
-	return paramErr;
+    log_err("NOT IMPLEMENTED");
+    return paramErr;
 }
 
 - (OSStatus)addACL:(const char *)aclText toFile:(NSString *)filePath
 {
-	OSStatus err = noErr;
-	acl_t acl = NULL, fileACL = NULL, aclToSet = NULL;
-	acl_entry_t newEntry;
-	int fd;
-	
-	FAIL_IF(!(acl = acl_from_text(aclText)));
-	
-	aclToSet = acl;
-	fileACL = [self aclsForFileAtPath:filePath];
-	
-	// the file may already contain ACLs
-	if ( fileACL ) {
-		DO_FAILABLE_SUB(err, errno, acl_get_entry, acl, ACL_FIRST_ENTRY, &newEntry);
-		DO_FAILABLE_SUB(err, errno, acl_create_entry, &fileACL, &newEntry);
-		aclToSet = fileACL;
-	}
-	
-	if ( ![self isSymbolicLinkAtPath:filePath] )
-		DO_FAILABLE_SUB(err, errno, acl_set_file, [filePath fileSystemRepresentation], ACL_TYPE_EXTENDED, aclToSet);
-	else {
-		// see: http://0xced.blogspot.com/2009/03/chmod-acl-and-symbolic-links_23.html
-		fd = open([filePath fileSystemRepresentation], O_SYMLINK);
-		FAIL_IF(fd == -1, err = errno);
-		err = acl_set_fd_np(fd, aclToSet, ACL_TYPE_EXTENDED);
-		close(fd);
-		FAIL_IF(err, err = errno);
-	}
-	
+    OSStatus err = noErr;
+    acl_t acl = NULL, fileACL = NULL, aclToSet = NULL;
+    acl_entry_t newEntry;
+    int fd;
+    
+    FAIL_IF(!(acl = acl_from_text(aclText)));
+    
+    aclToSet = acl;
+    fileACL = [self aclsForFileAtPath:filePath];
+    
+    // the file may already contain ACLs
+    if ( fileACL ) {
+        DO_FAILABLE_SUB(err, errno, acl_get_entry, acl, ACL_FIRST_ENTRY, &newEntry);
+        DO_FAILABLE_SUB(err, errno, acl_create_entry, &fileACL, &newEntry);
+        aclToSet = fileACL;
+    }
+    
+    if ( ![self isSymbolicLinkAtPath:filePath] )
+        DO_FAILABLE_SUB(err, errno, acl_set_file, [filePath fileSystemRepresentation], ACL_TYPE_EXTENDED, aclToSet);
+    else {
+        // see: http://0xced.blogspot.com/2009/03/chmod-acl-and-symbolic-links_23.html
+        fd = open([filePath fileSystemRepresentation], O_SYMLINK);
+        FAIL_IF(fd == -1, err = errno);
+        err = acl_set_fd_np(fd, aclToSet, ACL_TYPE_EXTENDED);
+        close(fd);
+        FAIL_IF(err, err = errno);
+    }
+    
 fail_label:
-	if ( acl ) acl_free((void*)acl);
-	if ( fileACL ) acl_free((void*)fileACL);
-	if ( err ) log_errp("failed to add ACL (%s) to: '%@'", aclText, filePath);
-	return err;
+    if ( acl ) acl_free((void*)acl);
+    if ( fileACL ) acl_free((void*)fileACL);
+    if ( err ) log_errp("failed to add ACL (%s) to: '%@'", aclText, filePath);
+    return err;
 }
 
 - (BOOL)fileHasACLs:(NSString *)filePath
 {
-	acl_t acl = [self aclsForFileAtPath:filePath];
-	if ( acl ) {
-		acl_free((void*)acl);
-		return YES;
-	}
-	return NO;
+    acl_t acl = [self aclsForFileAtPath:filePath];
+    if ( acl ) {
+        acl_free((void*)acl);
+        return YES;
+    }
+    return NO;
 }
 
 - (acl_t)aclsForFileAtPath:(NSString *)filePath
 {
-	int fd = open([filePath fileSystemRepresentation], [self isSymbolicLinkAtPath:filePath] ? O_SYMLINK : O_RDONLY);
-	FAIL_IFQ(fd == -1, log_errp("failed to open: %@", filePath));
-	acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
-	close(fd);
-	return acl;
+    int fd = open([filePath fileSystemRepresentation], [self isSymbolicLinkAtPath:filePath] ? O_SYMLINK : O_RDONLY);
+    FAIL_IFQ(fd == -1, log_errp("failed to open: %@", filePath));
+    acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
+    close(fd);
+    return acl;
 fail_label:
-	return NULL;
+    return NULL;
 }
 
 - (OSStatus)setACL:(acl_t)acl forFileAtPath:(NSString *)filePath
 {
-	return acl_set_file([filePath fileSystemRepresentation], ACL_TYPE_EXTENDED, acl) ? errno : 0;
+    return acl_set_file([filePath fileSystemRepresentation], ACL_TYPE_EXTENDED, acl) ? errno : 0;
 }
 
 // extended attributes
 - (NSArray*)xattrNamesAtPath:(NSString*)path
 {
-	NSMutableArray *array = nil;
-	size_t size = listxattr([path fileSystemRepresentation], NULL, 0, 0);
-	if ( size == 0 ) return nil;
-	FAIL_IFQ(size == -1, if ( errno != ENOTSUP ) log_errp("failed to get list of xattrs for: %@", path));
-	char *xattrs = malloc(size);
-	size = listxattr([path fileSystemRepresentation], xattrs, size, 0);
-	size_t sLen = 0;
-	array = [NSMutableArray arrayWithCapacity:size];
-	for (char *xattr = xattrs; xattr < (xattrs + size); xattr += (1 + sLen)) {
-		sLen = strlen(xattr);
-		[array addObject:[NSString stringWithUTF8String:xattr]];
-	}
-	free(xattrs);
+    NSMutableArray *array = nil;
+    size_t size = listxattr([path fileSystemRepresentation], NULL, 0, 0);
+    if ( size == 0 ) return nil;
+    FAIL_IFQ(size == -1, if ( errno != ENOTSUP ) log_errp("failed to get list of xattrs for: %@", path));
+    char *xattrs = malloc(size);
+    size = listxattr([path fileSystemRepresentation], xattrs, size, 0);
+    size_t sLen = 0;
+    array = [NSMutableArray arrayWithCapacity:size];
+    for (char *xattr = xattrs; xattr < (xattrs + size); xattr += (1 + sLen)) {
+        sLen = strlen(xattr);
+        [array addObject:[NSString stringWithUTF8String:xattr]];
+    }
+    free(xattrs);
 fail_label:
-	return array;
+    return array;
 }
 
 - (NSData*)xattrDataForName:(NSString*)name atPath:(NSString*)path
 {
-	NSData *data = nil;
-	ssize_t xattrBytes = getxattr([path fileSystemRepresentation], [name UTF8String], NULL, 0, 0, 0);
-	if ( xattrBytes == 0 ) return nil;
-	FAIL_IFQ(xattrBytes == -1, if ( errno != ENOATTR ) log_errp("error getting xattr '%@' for: '%@'", name, path));
-	uint8_t *xattrBuff = malloc(xattrBytes+1);
-	xattrBytes = getxattr([path fileSystemRepresentation], [name UTF8String], xattrBuff, xattrBytes, 0, 0);
-	if ( xattrBytes != -1 && xattrBytes > 0 )
-		data = [NSData dataWithBytes:xattrBuff length:xattrBytes];
-	free(xattrBuff);
+    NSData *data = nil;
+    ssize_t xattrBytes = getxattr([path fileSystemRepresentation], [name UTF8String], NULL, 0, 0, 0);
+    if ( xattrBytes == 0 ) return nil;
+    FAIL_IFQ(xattrBytes == -1, if ( errno != ENOATTR ) log_errp("error getting xattr '%@' for: '%@'", name, path));
+    uint8_t *xattrBuff = malloc(xattrBytes+1);
+    xattrBytes = getxattr([path fileSystemRepresentation], [name UTF8String], xattrBuff, xattrBytes, 0, 0);
+    if ( xattrBytes != -1 && xattrBytes > 0 )
+        data = [NSData dataWithBytes:xattrBuff length:xattrBytes];
+    free(xattrBuff);
 fail_label:
-	return data;
+    return data;
 }
 
 - (OSStatus)setData:(NSData*)data forXattr:(NSString*)name atPath:(NSString*)path
 {
-	OSStatus err = noErr;
-	FAIL_IFQ(![self fileExistsAtPath:path], log_warn("can't set xattr '%@'; file doesn't exist: '%@'", name, path); err = ENOENT);
-	FAIL_IFQ(setxattr([path fileSystemRepresentation], [name UTF8String], [data bytes], [data length], 0, 0),
-			 log_warn("failed to setxattr '%@' on: '%@', error: %s", name, path, strerror(errno)); err = errno);
+    OSStatus err = noErr;
+    FAIL_IFQ(![self fileExistsAtPath:path], log_warn("can't set xattr '%@'; file doesn't exist: '%@'", name, path); err = ENOENT);
+    FAIL_IFQ(setxattr([path fileSystemRepresentation], [name UTF8String], [data bytes], [data length], 0, 0),
+             log_warn("failed to setxattr '%@' on: '%@', error: %s", name, path, strerror(errno)); err = errno);
 fail_label:
-	return err;
+    return err;
 }
 
 @end
