@@ -478,6 +478,8 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
                                       @".DocumentRevisions-V100", @".hotfiles.btree"];
     FSFileOperationRef fileOp = NULL;
     CFRunLoopRef runLoopRef = NULL;
+    NSRunLoop *runLoop = NULL;
+    
     resultURL = [toURL URLByAppendingPathComponent:[fromURL lastPathComponent] isDirectory:YES];
     
     bool useFS = true;
@@ -491,8 +493,8 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
         FSFileOperationClientContext context;
         
         fileOp = FSFileOperationCreate(NULL);
-        NSRunLoop *runLoop = [NSRunLoop currentRunLoop];//[NSRunLoop mainRunLoop];
-        CFRunLoopRef runLoopRef = [runLoop getCFRunLoop];
+        runLoop = [NSRunLoop currentRunLoop];
+        runLoopRef = [runLoop getCFRunLoop];
         
         CFURLGetFSRef((__bridge CFURLRef)fromURL, &fromRef);
         CFURLGetFSRef((__bridge CFURLRef)toURL, &toRef);
@@ -551,7 +553,6 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     }
     
     
-    
     if( !move )
     {
         
@@ -578,7 +579,7 @@ static void MyFSFileOperationStatusProc(FSFileOperationRef fileOp,
     }
 fail_label:
     if( fileOp ) {
-        FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
+        if( runLoopRef) FSFileOperationUnscheduleFromRunLoop(fileOp, runLoopRef, kCFRunLoopDefaultMode);
         CFRelease(fileOp);
     }
     
