@@ -86,7 +86,7 @@
 
 // the [aBlock copy] fixes a crash on macOS Sierra (Espionage issue #399)
 #define INMAINWAIT(...) do { \
-    void(^aBlock)(void) = ^{ \
+    void(^aBlock)() = ^{ \
         __VA_ARGS__; \
     }; \
     if ( __unlikely([NSThread isMainThread]) ) \
