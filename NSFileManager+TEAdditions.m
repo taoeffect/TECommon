@@ -353,8 +353,13 @@ static NSUInteger _fastSize(FSRef *theFileRef, BOOL(^cancelBlock)(NSUInteger cur
     NSUInteger totalSize = 0;
     FSIterator thisDirEnum;
     static NSDictionary *ignoreErrorsList = nil;
-    if ( __unlikely(ignoreErrorsList == nil) )
-        ignoreErrorsList = @{@".Trashes": @YES, @".DocumentRevisions-V100": @YES};
+    static dispatch_once_t onceToken;
+    // Since this function might be called from multiple threads
+    // we want to ensure thread safety as to the value of ignoreErrorsList
+    dispatch_once(&onceToken, ^{
+        if ( __unlikely(ignoreErrorsList == nil) )
+            ignoreErrorsList = @{@".Trashes": @YES, @".DocumentRevisions-V100": @YES};
+    });
     
     if (FSOpenIterator(theFileRef, kFSIterateFlat, &thisDirEnum) == noErr)
     {
